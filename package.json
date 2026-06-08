@@ -3,7 +3,8 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "vite",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
     "dev:server": "tsx watch server/local.ts",
     "dev:all": "npm run dev:server & npm run dev",
     "build": "vite build",
@@ -69,6 +70,7 @@
     "tailwindcss": "^4.3.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "wrangler": "^4.98.0"
   }
 }
