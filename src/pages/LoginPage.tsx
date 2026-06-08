@@ -43,8 +43,17 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true)
     try {
+      // Resolve email from username
+      const { data: email, error: rpcError } = await supabase.rpc('get_email_by_username', { 
+        p_username: data.username 
+      })
+      
+      if (rpcError) throw new Error('Terjadi kesalahan saat memverifikasi username')
+      if (!email) throw new Error('Username tidak ditemukan')
+
+      // Sign in with the resolved email
       const { error } = await supabase.auth.signInWithPassword({
-        email: `${data.username}@gmail.com`,
+        email: email,
         password: data.password,
       })
 

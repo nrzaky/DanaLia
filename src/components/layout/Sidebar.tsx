@@ -13,7 +13,11 @@ const navItems = [
 ]
 
 export default function Sidebar() {
-  const { user, logout } = useAuth()
+  const { user, profile, logout } = useAuth()
+
+  const fallbackName = user?.email ? user.email.split('@')[0] : 'User'
+  const displayName = profile?.full_name || profile?.username || user?.user_metadata?.full_name || fallbackName
+  const displayEmail = user?.email || `@${profile?.username || 'user'}`
 
   return (
     <aside className="w-64 border-r border-border bg-white flex flex-col h-dvh sticky top-0">
@@ -75,14 +79,14 @@ export default function Sidebar() {
       <div className="p-4 border-t border-border mt-auto">
         <div className="flex items-center gap-3 w-full overflow-hidden mb-4">
           <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-lg uppercase shadow-sm border border-primary/20">
-            {(user?.user_metadata?.full_name || user?.email || '?').charAt(0)}
+            {(displayName).charAt(0)}
           </div>
           <div className="flex-1 min-w-0 flex flex-col justify-center">
             <span className="text-sm font-semibold truncate text-foreground leading-tight">
-              {user?.user_metadata?.full_name || 'User'}
+              {displayName}
             </span>
             <span className="text-xs text-muted-foreground truncate leading-tight">
-              {user?.email || '@user'}
+              {displayEmail}
             </span>
           </div>
         </div>
