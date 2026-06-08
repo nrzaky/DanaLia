@@ -5,11 +5,15 @@ import { useCreateTransactionWithProof, useCreateTransaction } from '@/hooks/use
 import { toast } from 'sonner'
 import { parseIDR } from '@/utils/currency'
 import { ArrowLeft } from 'lucide-react'
+import { useAuth } from '@/components/auth/AuthProvider'
 
 export default function AddTransactionPage() {
   const navigate = useNavigate()
   const createWithProof = useCreateTransactionWithProof()
   const create = useCreateTransaction()
+
+  const { user } = useAuth()
+  const username = user?.user_metadata?.full_name || user?.email || 'Unknown User'
 
   const handleSubmit = async (
     data: { amount: string; transactionType: 'DEPOSIT' | 'WITHDRAWAL'; paymentMethod: string; transactionDate: string; depositMessage?: string },
@@ -22,6 +26,7 @@ export default function AddTransactionPage() {
         formData.append('transactionType', data.transactionType)
         formData.append('paymentMethod', data.paymentMethod)
         formData.append('transactionDate', data.transactionDate)
+        formData.append('createdBy', username)
         if (data.depositMessage) formData.append('depositMessage', data.depositMessage)
         formData.append('proof', proofFile)
         await createWithProof.mutateAsync(formData)
@@ -32,6 +37,7 @@ export default function AddTransactionPage() {
           paymentMethod: data.paymentMethod,
           transactionDate: data.transactionDate,
           depositMessage: data.depositMessage || null,
+          createdBy: username,
           proofUrl: null,
         })
       }

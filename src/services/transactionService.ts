@@ -27,6 +27,12 @@ const mapTransaction = (data: any): Transaction => {
     proofUrl: data.proof_url,
     depositMessage: data.deposit_message,
     transactionDate: data.transaction_date,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+    createdBy: data.created_by,
+    updatedBy: data.updated_by,
+    deletedAt: data.deleted_at,
+    deletedBy: data.deleted_by,
   } as any as Transaction
 }
 
@@ -107,15 +113,20 @@ export const transactionService = {
     proofUrl?: string | null
     depositMessage?: string | null
     transactionDate: string
+    createdBy?: string
   }): Promise<Transaction> {
     const amount = payload.transactionType === 'WITHDRAWAL' ? -Math.abs(payload.amount) : Math.abs(payload.amount)
     
-    const snakeCasePayload = {
+    const snakeCasePayload: any = {
       amount: amount,
       payment_method: payload.paymentMethod,
       proof_url: payload.proofUrl,
       deposit_message: payload.depositMessage,
       transaction_date: payload.transactionDate,
+    }
+
+    if (payload.createdBy) {
+      snakeCasePayload.created_by = payload.createdBy
     }
 
     const { data, error } = await supabase
@@ -144,6 +155,7 @@ export const transactionService = {
       paymentMethod: formData.get('paymentMethod') as string,
       depositMessage: formData.get('depositMessage') as string,
       transactionDate: formData.get('transactionDate') as string,
+      createdBy: formData.get('createdBy') as string | undefined,
       proofUrl
     }
 

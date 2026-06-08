@@ -6,7 +6,7 @@ import CurrencyDisplay from '@/components/shared/CurrencyDisplay'
 import { formatDate } from '@/utils/date'
 import { ArrowLeft, ExternalLink, Receipt, Pencil } from 'lucide-react'
 
-export default function TransactionDetailPage() {
+export default function HistoryDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { data: tx, isLoading } = useTransaction(Number(id))
@@ -89,18 +89,6 @@ export default function TransactionDetailPage() {
               <span className="text-muted-foreground">Dibuat Pada</span>
               <span className="font-medium">{formatDate(tx.createdAt)}</span>
             </div>
-            {tx.updatedBy && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Diperbarui Oleh</span>
-                <span className="font-medium font-mono text-xs">{tx.updatedBy}</span>
-              </div>
-            )}
-            {tx.updatedAt && (
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Diperbarui Pada</span>
-                <span className="font-medium">{formatDate(tx.updatedAt)}</span>
-              </div>
-            )}
           </div>
         </div>
 

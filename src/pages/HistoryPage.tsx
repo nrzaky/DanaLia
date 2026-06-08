@@ -36,8 +36,8 @@ const methodColors: Record<string, string> = {
 }
 
 function TransactionRow({
-  tx, onEdit, onDelete,
-}: { tx: Transaction; onEdit: () => void; onDelete: () => void }) {
+  tx, onEdit, onDelete, onViewDetail
+}: { tx: Transaction; onEdit: () => void; onDelete: () => void; onViewDetail: () => void }) {
   const Icon = methodIcons[tx.paymentMethod] ?? CreditCard
   const color = methodColors[tx.paymentMethod] ?? '#4285F4'
 
@@ -97,9 +97,10 @@ function TransactionRow({
           <Trash2 size={14} className="text-muted-foreground hover:text-destructive" />
         </button>
         <button
-          onClick={() => window.location.href = `/riwayat/${tx.id}`}
+          onClick={onViewDetail}
           className="p-1.5 rounded-lg hover:bg-muted transition-colors ml-1"
-          aria-label="Detail"
+          title="Lihat Riwayat"
+          aria-label="Lihat Riwayat"
         >
           <ExternalLink size={14} className="text-muted-foreground" />
         </button>
@@ -253,6 +254,7 @@ export default function HistoryPage() {
                   tx={tx}
                   onEdit={() => navigate(`/edit/${tx.id}`)}
                   onDelete={() => setDeleteId(tx.id)}
+                  onViewDetail={() => navigate(`/history/${tx.id}`)}
                 />
               ))}
             </div>

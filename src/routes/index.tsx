@@ -10,7 +10,7 @@ import ExportPage from '@/pages/ExportPage'
 import LoginPage from '@/pages/LoginPage'
 import SettingsPage from '@/pages/SettingsPage'
 import ActivityPage from '@/pages/ActivityPage'
-import TransactionDetailPage from '@/pages/TransactionDetailPage'
+import HistoryDetailPage from '@/pages/HistoryDetailPage'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 
 const router = createBrowserRouter([
@@ -28,7 +28,7 @@ const router = createBrowserRouter([
           { path: '/setor', element: <AddTransactionPage /> },
           { path: '/edit/:id', element: <EditTransactionPage /> },
           { path: '/riwayat', element: <HistoryPage /> },
-          { path: '/riwayat/:id', element: <TransactionDetailPage /> },
+          { path: '/history/:id', element: <HistoryDetailPage /> },
           { path: '/target', element: <TargetsPage /> },
           { path: '/galeri', element: <GalleryPage /> },
           { path: '/ekspor', element: <ExportPage /> },
