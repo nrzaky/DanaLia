@@ -55,7 +55,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-xl border-0 ring-1 ring-border/50 bg-card rounded-3xl overflow-hidden">
         <CardHeader className="space-y-3 pb-6 pt-8 text-center">
           <CardTitle className="text-3xl font-semibold tracking-tight text-foreground">
-            HAAIII LIAA
+            HAII LIAA
           </CardTitle>
           <CardDescription className="text-base">
             Login Dulu Bos
