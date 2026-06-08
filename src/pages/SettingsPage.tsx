@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Loader2, KeyRound } from 'lucide-react'
 import { toast } from 'sonner'
-import api from '@/lib/api'
+import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/auth/AuthProvider'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -39,14 +39,16 @@ export default function SettingsPage() {
 
   const onSubmit = async (data: PasswordFormValues) => {
     try {
-      await api.post('/auth/change-password', {
-        oldPassword: data.oldPassword,
-        newPassword: data.newPassword,
+      const { error } = await supabase.auth.updateUser({
+        password: data.newPassword
       })
+
+      if (error) throw error
+
       toast.success('Password changed successfully')
       form.reset()
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to change password')
+      toast.error(error.message || 'Failed to change password')
     }
   }
 

@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import api from '@/lib/api'
+import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/auth/AuthProvider'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -23,7 +23,7 @@ type LoginFormValues = z.infer<typeof loginSchema>
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { user, login } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -43,16 +43,17 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true)
     try {
-      const response = await api.post('/auth/login', data)
-      login(response.data)
+      const { error } = await supabase.auth.signInWithPassword({
+        email: `${data.username}@gmail.com`,
+        password: data.password,
+      })
+
+      if (error) throw error
+
       navigate('/', { replace: true })
       toast.success('Login successful')
     } catch (error: any) {
-      const errData = error.response?.data?.error
-      const errorMsg = typeof errData === 'string' 
-        ? errData 
-        : errData?.message || 'Failed to login'
-      toast.error(errorMsg)
+      toast.error(error.message || 'Failed to login')
     } finally {
       setIsLoading(false)
     }
@@ -75,6 +76,7 @@ export default function LoginPage() {
               <Label htmlFor="username" className="text-sm font-medium">Username</Label>
               <Input
                 id="username"
+                type="text"
                 autoComplete="username"
                 placeholder="Enter your username"
                 className="h-12 rounded-xl bg-muted/50 border-transparent hover:bg-muted focus:bg-background focus:border-primary transition-colors"

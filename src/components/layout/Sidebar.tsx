@@ -73,13 +73,17 @@ export default function Sidebar() {
 
       {/* User Menu */}
       <div className="p-4 border-t border-border mt-auto">
-        <div className="flex items-center gap-3 mb-4 px-2">
-          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold">
-            {user?.fullName?.charAt(0) || user?.username?.charAt(0) || 'U'}
+        <div className="flex items-center gap-3 w-full overflow-hidden mb-4">
+          <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-lg uppercase shadow-sm border border-primary/20">
+            {(user?.user_metadata?.full_name || user?.email || '?').charAt(0)}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground truncate">{user?.fullName}</p>
-            <p className="text-xs text-muted-foreground truncate">@{user?.username}</p>
+          <div className="flex-1 min-w-0 flex flex-col justify-center">
+            <span className="text-sm font-semibold truncate text-foreground leading-tight">
+              {user?.user_metadata?.full_name || 'User'}
+            </span>
+            <span className="text-xs text-muted-foreground truncate leading-tight">
+              {user?.email || '@user'}
+            </span>
           </div>
         </div>
         <button

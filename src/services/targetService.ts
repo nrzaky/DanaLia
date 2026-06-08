@@ -1,15 +1,34 @@
-import api from '@/lib/api'
+import { supabase } from '@/lib/supabase'
 import type { Target } from '@/types'
+
+const mapTarget = (data: any): Target => {
+  return {
+    ...data,
+    targetAmount: data.target_amount,
+    createdAt: data.created_at,
+  } as any as Target
+}
 
 export const targetService = {
   async getAll(): Promise<Target[]> {
-    const { data } = await api.get('/targets')
-    return data
+    const { data, error } = await supabase
+      .from('targets')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return (data || []).map(mapTarget)
   },
 
   async getById(id: number): Promise<Target> {
-    const { data } = await api.get(`/targets/${id}`)
-    return data
+    const { data, error } = await supabase
+      .from('targets')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error) throw error
+    return mapTarget(data)
   },
 
   async create(payload: {
@@ -17,19 +36,48 @@ export const targetService = {
     targetAmount: number
     description?: string | null
   }): Promise<Target> {
-    const { data } = await api.post('/targets', payload)
-    return data
+    const snakeCasePayload = {
+      title: payload.title,
+      target_amount: payload.targetAmount,
+      description: payload.description,
+    }
+
+    const { data, error } = await supabase
+      .from('targets')
+      .insert(snakeCasePayload)
+      .select()
+      .single()
+
+    if (error) throw error
+    return mapTarget(data)
   },
 
   async update(
     id: number,
     payload: Partial<{ title: string; targetAmount: number; description: string | null }>
   ): Promise<Target> {
-    const { data } = await api.put(`/targets/${id}`, payload)
-    return data
+    const snakeCasePayload: any = {}
+    if (payload.title !== undefined) snakeCasePayload.title = payload.title
+    if (payload.targetAmount !== undefined) snakeCasePayload.target_amount = payload.targetAmount
+    if (payload.description !== undefined) snakeCasePayload.description = payload.description
+
+    const { data, error } = await supabase
+      .from('targets')
+      .update(snakeCasePayload)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return mapTarget(data)
   },
 
   async delete(id: number): Promise<void> {
-    await api.delete(`/targets/${id}`)
+    const { error } = await supabase
+      .from('targets')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
   },
 }

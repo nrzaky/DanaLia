@@ -1,49 +1,45 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import api from '@/lib/api'
-import { User } from '@/db/schema'
+import { supabase } from '@/lib/supabase'
+import { User, Session } from '@supabase/supabase-js'
 
 type AuthContextType = {
-  user: Partial<User> | null
+  user: User | null
+  session: Session | null
   isLoading: boolean
-  login: (user: Partial<User>) => void
   logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<Partial<User> | null>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    async function checkAuth() {
-      try {
-        const response = await api.get('/auth/me')
-        setUser(response.data)
-      } catch (error) {
-        setUser(null)
-      } finally {
-        setIsLoading(false)
-      }
-    }
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setIsLoading(false)
+    })
 
-    checkAuth()
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setIsLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
-  const login = (userData: Partial<User>) => {
-    setUser(userData)
-  }
-
   const logout = async () => {
-    try {
-      await api.post('/auth/logout')
-    } finally {
-      setUser(null)
-    }
+    await supabase.auth.signOut()
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, session, isLoading, logout }}>
       {children}
     </AuthContext.Provider>
   )
