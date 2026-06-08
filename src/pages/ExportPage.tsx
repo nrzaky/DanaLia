@@ -14,22 +14,41 @@ export default function ExportPage() {
   const [monthlyYear, setMonthlyYear] = useState('')
   const [monthlyMonth, setMonthlyMonth] = useState('')
 
-  const handleExportDaily = () => {
+  const [isExportingDaily, setIsExportingDaily] = useState(false)
+  const [isExportingMonthly, setIsExportingMonthly] = useState(false)
+
+  const handleExportDaily = async () => {
     if (!dailyDate) {
       toast.error('Pilih tanggal terlebih dahulu')
       return
     }
-    exportService.downloadDailyPDF(dailyDate)
-    toast.success('Mengunduh laporan harian...')
+    setIsExportingDaily(true)
+    const toastId = toast.loading('Sedang mengunduh laporan harian...')
+    try {
+      await exportService.downloadDailyPDF(dailyDate)
+      toast.success('Laporan berhasil diunduh!', { id: toastId })
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal mengunduh laporan', { id: toastId })
+    } finally {
+      setIsExportingDaily(false)
+    }
   }
 
-  const handleExportMonthly = () => {
+  const handleExportMonthly = async () => {
     if (!monthlyYear || !monthlyMonth) {
       toast.error('Pilih tahun dan bulan terlebih dahulu')
       return
     }
-    exportService.downloadMonthlyPDF(monthlyYear, monthlyMonth)
-    toast.success('Mengunduh laporan bulanan...')
+    setIsExportingMonthly(true)
+    const toastId = toast.loading('Sedang mengunduh laporan bulanan...')
+    try {
+      await exportService.downloadMonthlyPDF(monthlyYear, monthlyMonth)
+      toast.success('Laporan berhasil diunduh!', { id: toastId })
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal mengunduh laporan', { id: toastId })
+    } finally {
+      setIsExportingMonthly(false)
+    }
   }
 
   return (
@@ -61,9 +80,10 @@ export default function ExportPage() {
             </div>
             <Button
               onClick={handleExportDaily}
-              className="w-full bg-primary hover:bg-primary/90 text-white h-11 rounded-xl gap-2 font-medium"
+              disabled={isExportingDaily}
+              className="w-full bg-primary hover:bg-primary/90 text-white h-11 rounded-xl gap-2 font-medium disabled:opacity-50"
             >
-              <FileText size={16} /> Unduh PDF
+              <FileText size={16} /> {isExportingDaily ? 'Sedang Mengunduh...' : 'Unduh PDF'}
             </Button>
           </div>
         </div>
@@ -110,9 +130,10 @@ export default function ExportPage() {
             </div>
             <Button
               onClick={handleExportMonthly}
-              className="w-full bg-[#34A853] hover:bg-[#34A853]/90 text-white h-11 rounded-xl gap-2 font-medium"
+              disabled={isExportingMonthly}
+              className="w-full bg-[#34A853] hover:bg-[#34A853]/90 text-white h-11 rounded-xl gap-2 font-medium disabled:opacity-50"
             >
-              <FileText size={16} /> Unduh PDF
+              <FileText size={16} /> {isExportingMonthly ? 'Sedang Mengunduh...' : 'Unduh PDF'}
             </Button>
           </div>
         </div>
