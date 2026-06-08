@@ -19,6 +19,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"],
-  "exclude": ["src/db/**/*"]
+  "include": ["src", "api", "server", "drizzle.config.ts"],
+  "exclude": []
 }

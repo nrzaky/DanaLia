@@ -46,7 +46,11 @@ export default function LoginPage() {
       navigate('/', { replace: true })
       toast.success('Login successful')
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Failed to login')
+      const errData = error.response?.data?.error
+      const errorMsg = typeof errData === 'string' 
+        ? errData 
+        : errData?.message || 'Failed to login'
+      toast.error(errorMsg)
     }
   }
 
