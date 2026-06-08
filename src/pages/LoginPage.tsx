@@ -22,6 +22,7 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const { user, login } = useAuth()
   const navigate = useNavigate()
 
@@ -40,6 +41,7 @@ export default function LoginPage() {
   })
 
   const onSubmit = async (data: LoginFormValues) => {
+    setIsLoading(true)
     try {
       const response = await api.post('/auth/login', data)
       login(response.data)
@@ -51,6 +53,8 @@ export default function LoginPage() {
         ? errData 
         : errData?.message || 'Failed to login'
       toast.error(errorMsg)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -108,9 +112,9 @@ export default function LoginPage() {
             <Button
               type="submit"
               className="w-full h-12 rounded-xl text-base font-medium shadow-md transition-all active:scale-[0.98]"
-              disabled={form.formState.isSubmitting}
+              disabled={form.formState.isSubmitting || isLoading}
             >
-              {form.formState.isSubmitting ? (
+              {form.formState.isSubmitting || isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Signing in...
