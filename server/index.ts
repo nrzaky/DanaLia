@@ -1,10 +1,7 @@
 import 'dotenv/config'
-import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { logger } from 'hono/logger'
-import multer from 'multer'
-import { IncomingMessage, ServerResponse } from 'http'
 
 import {
   getTransactions,
@@ -32,11 +29,6 @@ import { syncTransactionToSheets } from './services/sheets'
 import { buildDailyPDF, buildMonthlyPDF } from './services/pdf'
 import { authRouter } from './routes/auth'
 import { authMiddleware } from './middleware/auth'
-
-// ──────────────────────────────────────────────
-// Multer for multipart/form-data file uploads
-// ──────────────────────────────────────────────
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
 
 export type AppEnv = {
   Variables: {
@@ -262,131 +254,106 @@ app.put('/api/gallery/:id', async (c) => {
 })
 
 // ═══════════════════════════════════════════
-// Upload (Cloudinary) — uses raw node adapter
+// Upload (Cloudinary)
 // ═══════════════════════════════════════════
 app.post('/api/upload', async (c) => {
-  // Use multer via raw node request
-  const raw = c.env as { incoming: IncomingMessage; outgoing: ServerResponse }
-  const req = raw?.incoming ?? (c.req.raw as any)
-
-  return new Promise<Response>((resolve) => {
-    upload.single('file')(req as any, {} as any, async (err) => {
-      if (err) {
-        resolve(c.json({ error: err.message }, 400) as any)
-        return
-      }
-      const file = (req as any).file as Express.Multer.File | undefined
-      if (!file) {
-        resolve(c.json({ error: 'No file provided' }, 400) as any)
-        return
-      }
-      try {
-        const folder = (req as any).body?.folder ?? 'tabungan-lia'
-        const url = await uploadToCloudinary(file.buffer, folder)
-        resolve(c.json({ url }) as any)
-      } catch (uploadErr: any) {
-        resolve(c.json({ error: uploadErr.message }, 500) as any)
-      }
-    })
-  })
+  try {
+    const body = await c.req.parseBody()
+    const file = body['file'] as File | undefined
+    if (!file) {
+      return c.json({ error: 'No file provided' }, 400)
+    }
+    
+    const folder = (body['folder'] as string) ?? 'tabungan-lia'
+    const arrayBuffer = await file.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
+    
+    const url = await uploadToCloudinary(buffer, folder)
+    return c.json({ url })
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500)
+  }
 })
 
 // ═══════════════════════════════════════════
 // Gallery Upload (combined: upload + save)
 // ═══════════════════════════════════════════
 app.post('/api/gallery', async (c) => {
-  const raw = c.env as { incoming: IncomingMessage; outgoing: ServerResponse }
-  const req = raw?.incoming ?? (c.req.raw as any)
+  try {
+    const body = await c.req.parseBody()
+    let imageUrl: string
 
-  return new Promise<Response>((resolve) => {
-    upload.single('file')(req as any, {} as any, async (err) => {
-      if (err) {
-        resolve(c.json({ error: err.message }, 400) as any)
-        return
-      }
+    const file = body['file'] as File | undefined
+    if (file) {
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+      imageUrl = await uploadToCloudinary(buffer, 'tabungan-lia/gallery')
+    } else if (body['imageUrl'] && typeof body['imageUrl'] === 'string') {
+      imageUrl = body['imageUrl']
+    } else {
+      return c.json({ error: 'No file or imageUrl provided' }, 400)
+    }
 
-      const body = (req as any).body ?? {}
-      let imageUrl: string
-
-      if ((req as any).file) {
-        try {
-          imageUrl = await uploadToCloudinary((req as any).file.buffer, 'tabungan-lia/gallery')
-        } catch (uploadErr: any) {
-          resolve(c.json({ error: uploadErr.message }, 500) as any)
-          return
-        }
-      } else if (body.imageUrl) {
-        imageUrl = body.imageUrl
-      } else {
-        resolve(c.json({ error: 'No file or imageUrl provided' }, 400) as any)
-        return
-      }
-
-      const row = await createGalleryPhoto({
-        imageUrl,
-        caption: body.caption ?? null,
-      })
-      resolve(c.json(row, 201) as any)
+    const caption = typeof body['caption'] === 'string' ? body['caption'] : null
+    const row = await createGalleryPhoto({
+      imageUrl,
+      caption,
     })
-  })
+    return c.json(row, 201)
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500)
+  }
 })
 
 // ═══════════════════════════════════════════
 // Transaction Upload + Save
 // ═══════════════════════════════════════════
 app.post('/api/transactions/with-proof', async (c) => {
-  const raw = c.env as { incoming: IncomingMessage; outgoing: ServerResponse }
-  const req = raw?.incoming ?? (c.req.raw as any)
-  const user = c.get('user') as any
+  try {
+    const user = c.get('user') as any
+    const body = await c.req.parseBody()
+    let proofUrl: string | null = null
 
-  return new Promise<Response>((resolve) => {
-    upload.single('proof')(req as any, {} as any, async (err) => {
-      if (err) {
-        resolve(c.json({ error: err.message }, 400) as any)
-        return
+    const transactionType = body['transactionType'] as string ?? 'DEPOSIT'
+    const amount = Number(body['amount'])
+
+    if (transactionType === 'WITHDRAWAL') {
+      const stats = await getTotalSavings()
+      if (stats.totalSavings < amount) {
+        return c.json({ error: 'Insufficient balance' }, 400)
       }
-      const body = (req as any).body ?? {}
-      let proofUrl: string | null = null
+    }
 
-      if (body.transactionType === 'WITHDRAWAL') {
-        const stats = await getTotalSavings()
-        if (stats.totalSavings < Number(body.amount)) {
-          resolve(c.json({ error: 'Insufficient balance' }, 400) as any)
-          return
-        }
-      }
+    const file = body['proof'] as File | undefined
+    if (file) {
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+      proofUrl = await uploadToCloudinary(buffer, 'tabungan-lia/proofs')
+    }
 
-      if ((req as any).file) {
-        try {
-          proofUrl = await uploadToCloudinary((req as any).file.buffer, 'tabungan-lia/proofs')
-        } catch (uploadErr: any) {
-          resolve(c.json({ error: uploadErr.message }, 500) as any)
-          return
-        }
-      }
-
-      const row = await createTransaction({
-        amount: Number(body.amount),
-        paymentMethod: body.paymentMethod,
-        proofUrl,
-        depositMessage: body.depositMessage ?? null,
-        transactionDate: new Date(body.transactionDate),
-        transactionType: body.transactionType ?? 'DEPOSIT',
-        createdBy: user.id,
-      })
-      
-      await logActivity({
-        userId: user.id,
-        action: `Created ${row.transactionType} with proof`,
-        entityType: 'TRANSACTION',
-        entityId: String(row.id),
-        description: `Created transaction of amount ${row.amount}`,
-      })
-      
-      await syncTransactionToSheets('create', row)
-      resolve(c.json(row, 201) as any)
+    const row = await createTransaction({
+      amount,
+      paymentMethod: body['paymentMethod'] as string,
+      proofUrl,
+      depositMessage: (body['depositMessage'] as string) ?? null,
+      transactionDate: new Date(body['transactionDate'] as string),
+      transactionType,
+      createdBy: user.id,
     })
-  })
+    
+    await logActivity({
+      userId: user.id,
+      action: `Created ${row.transactionType} with proof`,
+      entityType: 'TRANSACTION',
+      entityId: String(row.id),
+      description: `Created transaction of amount ${row.amount}`,
+    })
+    
+    await syncTransactionToSheets('create', row)
+    return c.json(row, 201)
+  } catch (error: any) {
+    return c.json({ error: error.message }, 500)
+  }
 })
 
 // ═══════════════════════════════════════════
@@ -427,11 +394,4 @@ app.get('/api/activity', async (c) => {
   return c.json(rows)
 })
 
-// ═══════════════════════════════════════════
-// Start
-// ═══════════════════════════════════════════
-const PORT = Number(process.env.PORT ?? 3001)
-
-serve({ fetch: app.fetch, port: PORT }, () => {
-  console.log(`🌸 Tabungan Lia API running at http://localhost:${PORT}`)
-})
+export default app
