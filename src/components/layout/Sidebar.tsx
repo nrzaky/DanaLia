@@ -78,9 +78,17 @@ export default function Sidebar() {
       {/* User Menu */}
       <div className="p-4 border-t border-border mt-auto">
         <div className="flex items-center gap-3 w-full overflow-hidden mb-4">
-          <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-lg uppercase shadow-sm border border-primary/20">
-            {(displayName).charAt(0)}
-          </div>
+          {profile?.avatar_url ? (
+            <img 
+              src={profile.avatar_url} 
+              alt={displayName} 
+              className="h-10 w-10 shrink-0 rounded-full object-cover shadow-sm border border-border"
+            />
+          ) : (
+            <div className="h-10 w-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-lg uppercase shadow-sm border border-primary/20">
+              {(displayName).charAt(0)}
+            </div>
+          )}
           <div className="flex-1 min-w-0 flex flex-col justify-center">
             <span className="text-sm font-semibold truncate text-foreground leading-tight">
               {displayName}

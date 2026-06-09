@@ -22,7 +22,7 @@ export default function TotalSavingsCard() {
             />
           </div>
         )}
-        
+
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="bg-green-50 p-3 rounded-xl border border-green-100">
             <p className="text-xs text-green-700 font-medium mb-1">Total Setoran</p>
@@ -37,7 +37,7 @@ export default function TotalSavingsCard() {
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-1.5 text-[#34A853]">
             <TrendingUp size={14} strokeWidth={2.5} />
-            <span className="font-medium">Tetap semangat menabung!</span>
+            <span className="font-medium">Tetap semangat nabung sayang!</span>
           </div>
           {!isLoading && <span className="text-muted-foreground">{data?.transactionCount} transaksi</span>}
         </div>

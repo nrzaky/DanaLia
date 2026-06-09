@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, KeyRound, Activity, User, LogOut } from 'lucide-react'
+import { Loader2, KeyRound, Activity, User, LogOut, Camera } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/auth/AuthProvider'
+import { profileService } from '@/services/profileService'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,7 +26,9 @@ const passwordSchema = z.object({
 type PasswordFormValues = z.infer<typeof passwordSchema>
 
 export default function SettingsPage() {
-  const { user, profile, logout } = useAuth()
+  const { user, profile, logout, refreshProfile } = useAuth()
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -48,6 +51,25 @@ export default function SettingsPage() {
       form.reset()
     } catch (error: any) {
       toast.error(error.message || 'Failed to change password')
+    }
+  }
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+
+    setIsUploadingAvatar(true)
+    const toastId = toast.loading('Mengunggah foto profil...')
+
+    try {
+      await profileService.uploadAvatar(file, user.id)
+      await refreshProfile()
+      toast.success('Foto profil berhasil diperbarui', { id: toastId })
+    } catch (error: any) {
+      toast.error(error.message || 'Gagal mengunggah foto', { id: toastId })
+    } finally {
+      setIsUploadingAvatar(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -79,9 +101,44 @@ export default function SettingsPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="space-y-1">
-              <p className="font-medium text-foreground">{displayName}</p>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
+            <div className="flex items-center gap-6">
+              <div className="relative group">
+                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary font-medium text-3xl uppercase shadow-sm border border-primary/20 overflow-hidden relative">
+                  {profile?.avatar_url ? (
+                    <img 
+                      src={profile.avatar_url} 
+                      alt={displayName} 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{(displayName).charAt(0)}</span>
+                  )}
+                  {isUploadingAvatar && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
+                      <Loader2 className="w-6 h-6 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploadingAvatar}
+                  className="absolute bottom-0 right-0 p-1.5 bg-primary text-white rounded-full shadow-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  title="Ubah Foto Profil"
+                >
+                  <Camera size={14} />
+                </button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  className="hidden" 
+                  accept="image/jpeg, image/png, image/webp" 
+                  onChange={handleAvatarUpload}
+                />
+              </div>
+              <div className="space-y-1">
+                <p className="font-medium text-foreground text-lg">{displayName}</p>
+                <p className="text-sm text-muted-foreground">{user?.email}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
