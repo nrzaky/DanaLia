@@ -12,12 +12,14 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatDate } from '@/utils/date'
 import {
   Search, Pencil, Trash2, Receipt, ExternalLink,
-  ChevronLeft, ChevronRight, CreditCard, Banknote, Smartphone, Wallet
+  ChevronLeft, ChevronRight, CreditCard, Banknote, Smartphone, Wallet,
+  FileText, Loader2
 } from 'lucide-react'
 import type { Transaction } from '@/types'
 import { toast } from 'sonner'
 import { MONTHS, YEARS } from '@/utils/date'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { exportService } from '@/services/statsService'
 
 type FilterMode = 'all' | 'day' | 'month' | 'year'
 
@@ -119,6 +121,7 @@ export default function HistoryPage() {
   const [year, setYear] = useState('')
   const [page, setPage] = useState(1)
   const [deleteId, setDeleteId] = useState<number | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
 
   const debouncedSearch = useDebounce(search)
   const deleteMutation = useDeleteTransaction()
@@ -140,6 +143,34 @@ export default function HistoryPage() {
       toast.error('Gagal menghapus setoran')
     } finally {
       setDeleteId(null)
+    }
+  }
+
+  const handleExport = async () => {
+    if (mode === 'day' && day) {
+      setIsExporting(true)
+      const toastId = toast.loading('Sedang mengunduh laporan harian...')
+      try {
+        await exportService.downloadDailyPDF(day)
+        toast.success('Laporan berhasil diunduh!', { id: toastId })
+      } catch (error: any) {
+        toast.error(error.message || 'Gagal mengunduh laporan', { id: toastId })
+      } finally {
+        setIsExporting(false)
+      }
+    } else if (mode === 'month' && month && monthNum) {
+      setIsExporting(true)
+      const toastId = toast.loading('Sedang mengunduh laporan bulanan...')
+      try {
+        await exportService.downloadMonthlyPDF(month, monthNum)
+        toast.success('Laporan berhasil diunduh!', { id: toastId })
+      } catch (error: any) {
+        toast.error(error.message || 'Gagal mengunduh laporan', { id: toastId })
+      } finally {
+        setIsExporting(false)
+      }
+    } else {
+      toast.error('Pilih filter Hari atau Bulan terlebih dahulu untuk mengekspor data.')
     }
   }
 
@@ -222,6 +253,18 @@ export default function HistoryPage() {
             </SelectContent>
           </Select>
         )}
+      </div>
+
+      {/* Mobile Export Button */}
+      <div className="px-4 mb-4 md:hidden">
+        <Button
+          onClick={handleExport}
+          disabled={isExporting || (mode !== 'day' && mode !== 'month') || (mode === 'day' && !day) || (mode === 'month' && (!month || !monthNum))}
+          className="w-full bg-primary hover:bg-primary/90 text-white h-11 rounded-xl gap-2 font-medium shadow-sm"
+        >
+          {isExporting ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
+          {isExporting ? 'Mengekspor...' : 'Export Laporan'}
+        </Button>
       </div>
 
       {/* Transaction list — Google Sheets style */}
