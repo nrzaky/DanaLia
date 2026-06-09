@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, KeyRound } from 'lucide-react'
+import { Loader2, KeyRound, Activity, User, LogOut } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/components/auth/AuthProvider'
@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Link } from 'react-router-dom'
-import { Activity } from 'lucide-react'
 
 const passwordSchema = z.object({
   oldPassword: z.string().min(1, 'Current password is required'),
@@ -26,7 +25,7 @@ const passwordSchema = z.object({
 type PasswordFormValues = z.infer<typeof passwordSchema>
 
 export default function SettingsPage() {
-  const { user } = useAuth()
+  const { user, profile, logout } = useAuth()
 
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -52,8 +51,11 @@ export default function SettingsPage() {
     }
   }
 
+  const fallbackName = user?.email ? user.email.split('@')[0] : 'User'
+  const displayName = profile?.full_name || profile?.username || user?.user_metadata?.full_name || fallbackName
+
   return (
-    <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-6">
+    <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
         <p className="text-muted-foreground mt-2">
@@ -61,89 +63,128 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      <Card className="shadow-sm border-border/50 overflow-hidden">
-        <CardHeader className="bg-muted/30 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-full text-primary">
-              <KeyRound className="w-5 h-5" />
+      <div className="space-y-6">
+        <h2 className="text-xl font-semibold tracking-tight border-b pb-2">Account</h2>
+        
+        <Card className="shadow-sm border-border/50 overflow-hidden">
+          <CardHeader className="bg-muted/30 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-full text-primary">
+                <User className="w-5 h-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Profile</CardTitle>
+                <CardDescription>Your account information</CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-lg">Change Password</CardTitle>
-              <CardDescription>Update your account password</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="space-y-1">
+              <p className="font-medium text-foreground">{displayName}</p>
+              <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-md">
-            <div className="space-y-2">
-              <Label htmlFor="oldPassword">Current Password</Label>
-              <Input
-                id="oldPassword"
-                type="password"
-                {...form.register('oldPassword')}
-              />
-              {form.formState.errors.oldPassword && (
-                <p className="text-sm text-destructive">{form.formState.errors.oldPassword.message}</p>
-              )}
-            </div>
+          </CardContent>
+        </Card>
 
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                {...form.register('newPassword')}
-              />
-              {form.formState.errors.newPassword && (
-                <p className="text-sm text-destructive">{form.formState.errors.newPassword.message}</p>
-              )}
+        <Card className="shadow-sm border-border/50 overflow-hidden">
+          <CardHeader className="bg-muted/30 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-full text-primary">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Change Password</CardTitle>
+                <CardDescription>Update your account password</CardDescription>
+              </div>
             </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-md">
+              <div className="space-y-2">
+                <Label htmlFor="oldPassword">Current Password</Label>
+                <Input
+                  id="oldPassword"
+                  type="password"
+                  {...form.register('oldPassword')}
+                />
+                {form.formState.errors.oldPassword && (
+                  <p className="text-sm text-destructive">{form.formState.errors.oldPassword.message}</p>
+                )}
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                {...form.register('confirmPassword')}
-              />
-              {form.formState.errors.confirmPassword && (
-                <p className="text-sm text-destructive">{form.formState.errors.confirmPassword.message}</p>
-              )}
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  {...form.register('newPassword')}
+                />
+                {form.formState.errors.newPassword && (
+                  <p className="text-sm text-destructive">{form.formState.errors.newPassword.message}</p>
+                )}
+              </div>
 
-            <Button 
-              type="submit" 
-              className="mt-4"
-              disabled={form.formState.isSubmitting}
-            >
-              {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Update Password
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  {...form.register('confirmPassword')}
+                />
+                {form.formState.errors.confirmPassword && (
+                  <p className="text-sm text-destructive">{form.formState.errors.confirmPassword.message}</p>
+                )}
+              </div>
 
-      <Card className="shadow-sm border-border/50 overflow-hidden mt-6">
-        <CardHeader className="bg-muted/30 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-full text-primary">
-              <Activity className="w-5 h-5" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">Log Aktivitas</CardTitle>
-              <CardDescription>Lihat riwayat aktivitas dan jejak audit sistem</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <Button asChild variant="outline" className="w-full justify-between group">
-            <Link to="/settings/activity">
-              Buka Log Aktivitas
-              <Activity className="w-4 h-4 ml-2 opacity-50 group-hover:opacity-100 transition-opacity" />
-            </Link>
+              <Button 
+                type="submit" 
+                className="mt-4"
+                disabled={form.formState.isSubmitting}
+              >
+                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Update Password
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Mobile Logout Button - hidden on md and above */}
+        <div className="md:hidden pt-2">
+          <Button
+            variant="destructive"
+            className="w-full py-6 text-base font-medium rounded-xl shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2"
+            onClick={() => logout()}
+          >
+            <LogOut className="w-5 h-5" />
+            Logout
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      <div className="space-y-6 pt-4">
+        <h2 className="text-xl font-semibold tracking-tight border-b pb-2">System</h2>
+        <Card className="shadow-sm border-border/50 overflow-hidden">
+          <CardHeader className="bg-muted/30 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary/10 rounded-full text-primary">
+                <Activity className="w-5 h-5" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Log Aktivitas</CardTitle>
+                <CardDescription>Lihat riwayat aktivitas dan jejak audit sistem</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <Button asChild variant="outline" className="w-full justify-between group">
+              <Link to="/settings/activity">
+                Buka Log Aktivitas
+                <Activity className="w-4 h-4 ml-2 opacity-50 group-hover:opacity-100 transition-opacity" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
