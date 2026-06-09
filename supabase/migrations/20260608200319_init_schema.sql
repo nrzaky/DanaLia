@@ -53,13 +53,25 @@ CREATE POLICY "Users can update their own profile"
   ON profiles FOR UPDATE
   USING (auth.uid() = id);
 
+-- Function to safely get user role without triggering RLS
+CREATE OR REPLACE FUNCTION public.get_user_role()
+RETURNS TEXT
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT role FROM public.profiles WHERE id = auth.uid();
+$$;
+
 CREATE POLICY "Admins can access all profiles"
   ON profiles FOR ALL
   USING (
-    EXISTS (
-      SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'
-    )
+    public.get_user_role() = 'admin'
   );
+
+CREATE POLICY "Users can insert their own profile"
+  ON profiles FOR INSERT
+  WITH CHECK (auth.uid() = id);
 
 -- Basic RLS for other tables (only authenticated users can perform CRUD)
 CREATE POLICY "Authenticated users can access transactions"
